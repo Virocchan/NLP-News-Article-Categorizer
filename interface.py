@@ -6,7 +6,27 @@ import os
 
 
 def setup_page():
-    # ❌ REMOVED st.set_page_config (must only exist in app.py)
+
+    st.markdown("""
+    <style>
+    .stApp {
+        background-color: #0E1117;
+        color: #FAFAFA;
+    }
+
+    section[data-testid="stSidebar"] {
+        background-color: #111827;
+    }
+
+    p, h1, h2, h3, h4, h5 {
+        color: #FAFAFA !important;
+    }
+
+    div[data-testid="stMarkdownContainer"] {
+        color: #FAFAFA !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
     with st.sidebar:
         st.header("📰 Project Details")
@@ -59,7 +79,10 @@ def draw_confidence_chart(probabilities):
     fig.update_layout(
         xaxis_tickformat="%",
         showlegend=False,
-        height=280
+        height=280,
+        paper_bgcolor="#0E1117",
+        plot_bgcolor="#0E1117",
+        font_color="white"
     )
 
     st.plotly_chart(fig, use_container_width=True)

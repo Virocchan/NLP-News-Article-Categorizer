@@ -6,14 +6,34 @@ import json
 import os
 import interface as ui
 
-# IMPORTANT: only call once (and must be first Streamlit call)
 st.set_page_config(page_title="R&R News Categorizer", layout="wide")
+
+st.markdown("""
+<style>
+.stApp {
+    background-color: #0E1117;
+    color: #FAFAFA;
+}
+
+section[data-testid="stSidebar"] {
+    background-color: #111827;
+}
+
+textarea, input {
+    background-color: #1E1E1E !important;
+    color: white !important;
+}
+
+p, h1, h2, h3, h4, h5 {
+    color: #FAFAFA !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 IMG_DIR = os.path.join(DIR, "images")
 
 MODEL_NAME = "Kimii2Dev/rr-news-categorizer"
-
 
 @st.cache_resource
 def load_model():
@@ -45,26 +65,18 @@ def predict(text):
     pred_id = torch.argmax(outputs.logits, dim=1).item()
     pred_label = labels[str(pred_id)]
 
-    prob_dict = {
-        labels[str(i)]: float(p)
-        for i, p in enumerate(probs)
-    }
+    prob_dict = {labels[str(i)]: float(p) for i, p in enumerate(probs)}
 
     return pred_label, prob_dict
 
 
-# UI setup (unchanged behavior)
 ui.setup_page()
 
 tab1, tab2 = st.tabs(["🔍 Predict Classifier", "📊 Metrics Dashboard"])
 
 with tab1:
     st.markdown("#### Enter content for analysis:")
-    text_input = st.text_area(
-        "Input News Article:",
-        height=150,
-        placeholder="e.g., Global markets rallied on Tuesday after the central bank..."
-    )
+    text_input = st.text_area("Input News Article:", height=150)
 
     if st.button("Predict Category", type="primary"):
         if text_input:
