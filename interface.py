@@ -47,7 +47,7 @@ def setup_page():
 
     st.markdown("### What our system about?")
     st.markdown(
-        "A system that automatically categorizes news articles into topics like World, Science/Technology, Sports and Business.
+        "A system that automatically categorizes news articles into topics like World, Science/Technology, Sports and Business."
     )
 
     st.markdown("### How to use this app:")
@@ -107,4 +107,4 @@ def show_image_dashboard(image_dir):
     with col2:
         load_img(col2, "loss_curve.png", "2. Training Loss Curve")
         st.write("")
-        load_img(col2, "confusion_matrix.png", "4. Confusion Matrix")
+        load_img(col2, "confusion_matrix.png", "4. Confusion Matrix - BERT")
