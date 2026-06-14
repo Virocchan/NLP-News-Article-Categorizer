@@ -7,26 +7,21 @@ import os
 def setup_page():
     st.set_page_config(page_title="R&R News Categorizer", layout="wide")
     
-    # --- SIDEBAR: Professional Group Details ---
     with st.sidebar:
         st.header("📰 Project Details")
         
-        # You can change "R&R Tech Team" to your actual group name!
         st.markdown("**Group Name:** R&R Tech Team") 
         
         st.divider()
         
         st.markdown("### 👥 Group Members")
-        # Using two spaces at the end of the name creates a tight, professional line break
         st.markdown("- **Virocchan A/L S.Elankoven** \n  *(A24AI0092)*")
         st.markdown("- **Ryan Ang Jun Yau** \n  *(A24AI0119)*")
         st.markdown("- **Muhammad Iman Hakimi Bin Abu Supian** \n  *(A24AI0113)*")
         
         st.divider()
         st.caption("🎓 Universiti Teknologi Malaysia Kuala Lumpur")
-    # -------------------------------------------
 
-    # --- MAIN PAGE CONTENT ---
     st.title("📰 R&R News Categorizer")
     
     st.markdown("### What problem are we solving?")
@@ -57,7 +52,6 @@ def show_image_dashboard(image_dir):
         column.markdown(f"#### {title}")
         path = os.path.join(image_dir, filename)
         if os.path.exists(path):
-            # Open the image and resize it while keeping the Colab transparency intact
             img = Image.open(path).resize((600, 400))
             column.image(img, use_container_width=True)
         else:
@@ -65,10 +59,10 @@ def show_image_dashboard(image_dir):
             
     with col1:
         load_img(col1, "distribution.png", "1. Dataset Distribution")
-        st.write("") # Spacer
+        st.write("")
         load_img(col1, "wordcloud.png", "3. Global Word Cloud")
 
     with col2:
         load_img(col2, "loss_curve.png", "2. Training Loss Curve")
-        st.write("") # Spacer
+        st.write("")
         load_img(col2, "confusion_matrix.png", "4. Confusion Matrix")

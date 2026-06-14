@@ -6,34 +6,22 @@ import json
 import os
 import interface as ui
 
-# MUST be first Streamlit command
-st.set_page_config(
-    page_title="R&R News Categorizer",
-    layout="wide"
-)
+st.set_page_config(page_title="R&R News Categorizer", layout="wide")
 
-# Paths
 DIR = os.path.dirname(os.path.abspath(__file__))
 IMG_DIR = os.path.join(DIR, "images")
 
-# Hugging Face model
 MODEL_NAME = "Kimii2Dev/rr-news-categorizer"
-
 
 @st.cache_resource
 def load_model():
-    try:
-        tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-        model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
 
-        with open(os.path.join(DIR, "label_mapping.json"), "r") as f:
-            labels = json.load(f)
+    with open(os.path.join(DIR, "label_mapping.json"), 'r') as f:
+        labels = json.load(f)
 
-        return tokenizer, model, labels
-
-    except Exception as e:
-        st.error(f"Error loading model: {e}")
-        st.stop()
+    return tokenizer, model, labels
 
 
 def predict(text):
@@ -43,38 +31,32 @@ def predict(text):
         text,
         return_tensors="pt",
         truncation=True,
-        padding="max_length",
+        padding='max_length',
         max_length=128
     )
 
     with torch.no_grad():
         outputs = model(**inputs)
 
-    probs = F.softmax(outputs.logits, dim=1).squeeze()
+    probs = F.softmax(outputs.logits, dim=1).squeeze().tolist()
 
     pred_id = torch.argmax(outputs.logits, dim=1).item()
     pred_label = labels[str(pred_id)]
 
     prob_dict = {
-        labels[str(i)]: float(prob)
-        for i, prob in enumerate(probs)
+        labels[str(i)]: float(p)
+        for i, p in enumerate(probs)
     }
 
     return pred_label, prob_dict
 
 
-# --------------------
-# PAGE UI
-# --------------------
 ui.setup_page()
 
-tab1, tab2 = st.tabs(
-    ["🔍 Predict Classifier", "📊 Metrics Dashboard"]
-)
+tab1, tab2 = st.tabs(["🔍 Predict Classifier", "📊 Metrics Dashboard"])
 
 with tab1:
     st.markdown("#### Enter content for analysis:")
-
     text_input = st.text_area(
         "Input News Article:",
         height=150,
@@ -82,18 +64,13 @@ with tab1:
     )
 
     if st.button("Predict Category", type="primary"):
-        if text_input.strip():
-
+        if text_input:
             with st.spinner("Analyzing..."):
                 label, probabilities = predict(text_input)
 
-            st.success(
-                f"### Predicted Category: **{label}**"
-            )
-
-            st.write("**Model Confidence:**")
-            ui.draw_confidence_chart(probabilities)
-
+                st.success(f"### Predicted Category: **{label}**")
+                st.write("**Model Confidence:**")
+                ui.draw_confidence_chart(probabilities)
         else:
             st.warning("Please enter text first.")
 
