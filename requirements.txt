@@ -1,0 +1,9 @@
+streamlit
+torch==2.6.0
+transformers==4.52.4
+tokenizers
+safetensors
+pillow
+matplotlib
+pandas
+numpy
