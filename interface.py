@@ -43,7 +43,7 @@ def setup_page():
         st.divider()
         st.caption("🎓 Universiti Teknologi Malaysia Kuala Lumpur")
 
-    st.title("📰 R&R News Categorizer")
+    st.title("📰 R&R News Categorizer - Multilanguage")
 
     st.markdown("### What our system about?")
     st.markdown(
