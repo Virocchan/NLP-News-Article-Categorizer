@@ -54,7 +54,7 @@ def setup_page():
     st.markdown("""
     1. Type or paste a news article into the text box below.
     2. Click **Predict Category**.
-    3. Explore the dashboard to see the prediction, confidence scores, and training analytics.
+    3. Explore the dashboard to see the prediction, confidence scores and training analytics.
     """)
     st.divider()
 
