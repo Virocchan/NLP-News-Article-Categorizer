@@ -33,7 +33,7 @@ p, h1, h2, h3, h4, h5 {
 DIR = os.path.dirname(os.path.abspath(__file__))
 IMG_DIR = os.path.join(DIR, "images")
 
-MODEL_NAME = "Kimii2Dev/rr-news-categorizer"
+MODEL_NAME = "Kimii2Dev/news-categorizer"
 
 @st.cache_resource
 def load_model():
