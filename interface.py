@@ -45,11 +45,9 @@ def setup_page():
 
     st.title("📰 R&R News Categorizer")
 
-    st.markdown("### What problem are we solving?")
+    st.markdown("### What our system about?")
     st.markdown(
-        "With thousands of news articles generated online every day, "
-        "it is impossible to read and categorize them all manually. "
-        "Our NLP system automatically reads news snippets and predicts the category instantly."
+        "A system that automatically categorizes news articles into topics like World, Science/Technology, Sports and Business.
     )
 
     st.markdown("### How to use this app:")
