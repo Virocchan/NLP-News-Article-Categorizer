@@ -6,7 +6,7 @@ import json
 import os
 import interface as ui
 
-st.set_page_config(page_title="R&R News Categorizer", layout="wide")
+st.set_page_config(page_title="R&R News Categorizer - Multilanguage", layout="wide")
 
 st.markdown("""
 <style>
@@ -76,7 +76,7 @@ tab1, tab2 = st.tabs(["🔍 Predict Classifier", "📊 Metrics Dashboard"])
 
 with tab1:
     st.markdown("#### Enter content for analysis:")
-    text_input = st.text_area("Input News Article:", height=150)
+    text_input = st.text_area("Enter text in any language (e.g., Malay, English, Chinese, Tamil and etc.) :", height=150)
 
     if st.button("Predict Category", type="primary"):
         if text_input:
