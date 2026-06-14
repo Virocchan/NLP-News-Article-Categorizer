@@ -6,6 +6,7 @@ import json
 import os
 import interface as ui
 
+# IMPORTANT: only call once (and must be first Streamlit call)
 st.set_page_config(page_title="R&R News Categorizer", layout="wide")
 
 DIR = os.path.dirname(os.path.abspath(__file__))
@@ -13,12 +14,13 @@ IMG_DIR = os.path.join(DIR, "images")
 
 MODEL_NAME = "Kimii2Dev/rr-news-categorizer"
 
+
 @st.cache_resource
 def load_model():
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
 
-    with open(os.path.join(DIR, "label_mapping.json"), 'r') as f:
+    with open(os.path.join(DIR, "label_mapping.json"), "r") as f:
         labels = json.load(f)
 
     return tokenizer, model, labels
@@ -31,7 +33,7 @@ def predict(text):
         text,
         return_tensors="pt",
         truncation=True,
-        padding='max_length',
+        padding="max_length",
         max_length=128
     )
 
@@ -51,6 +53,7 @@ def predict(text):
     return pred_label, prob_dict
 
 
+# UI setup (unchanged behavior)
 ui.setup_page()
 
 tab1, tab2 = st.tabs(["🔍 Predict Classifier", "📊 Metrics Dashboard"])
