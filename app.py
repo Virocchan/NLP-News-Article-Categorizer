@@ -34,7 +34,6 @@ p, h1, h2, h3, h4, h5 {
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 IMG_DIR = os.path.join(DIR, "images")
-
 BERT_REPO = "Kimii2Dev/news-categorizer"
 
 @st.cache_resource
@@ -48,16 +47,16 @@ def load_models():
         labels = json.load(f)
 
     try:
-        tokenizer = AutoTokenizer.from_pretrained(BERT_REPO, local_files_only=False)
+        tokenizer = AutoTokenizer.from_pretrained(BERT_REPO, use_fast=True)
         bert_model = AutoModelForSequenceClassification.from_pretrained(BERT_REPO)
-    except Exception:
-        pass
+    except Exception as e:
+        st.sidebar.error(f"⚠️ BERT Load Failed: {str(e)[:100]}")
 
     try:
         lr_model_path = hf_hub_download(repo_id=BERT_REPO, filename="logistic_regression.pkl")
         lr_model = joblib.load(lr_model_path)
-    except Exception:
-        pass
+    except Exception as e:
+        st.sidebar.error(f"⚠️ LR Model Load Failed: {str(e)[:100]}")
 
     try:
         vec_path = hf_hub_download(repo_id=BERT_REPO, filename="tfidf_vectorizer.pkl")
@@ -80,7 +79,7 @@ def predict_all(text):
                 text,
                 return_tensors="pt",
                 truncation=True,
-                padding="max_length",
+                padding=True,
                 max_length=128
             )
             with torch.no_grad():
@@ -102,22 +101,21 @@ def predict_all(text):
             
             if hasattr(lr_model, "predict_proba"):
                 lr_probs = lr_model.predict_proba(processed_input)[0]
-                lr_prob_dict = {labels[str(i)]: float(p) for i, p in enumerate(lr_probs)}
-                lr_pred_idx = lr_model.predict(processed_input)[0]
-                lr_label = labels[str(lr_pred_idx)] if str(lr_pred_idx) in labels else str(lr_pred_idx)
+                
+                if hasattr(lr_model, "classes_") and isinstance(lr_model.classes_[0], str):
+                    lr_prob_dict = {str(c): float(lr_probs[i]) for i, c in enumerate(lr_model.classes_)}
+                    lr_pred_idx = lr_model.predict(processed_input)[0]
+                    lr_label = str(lr_pred_idx)
+                else:
+                    lr_prob_dict = {labels[str(i)]: float(p) for i, p in enumerate(lr_probs)}
+                    lr_pred_idx = lr_model.predict(processed_input)[0]
+                    lr_label = labels[str(lr_pred_idx)] if str(lr_pred_idx) in labels else str(lr_pred_idx)
             else:
                 lr_pred = lr_model.predict(processed_input)[0]
                 lr_label = labels[str(lr_pred)] if str(lr_pred) in labels else str(lr_pred)
                 lr_prob_dict[lr_label] = 1.0
         except Exception:
-            if hasattr(lr_model, "classes_"):
-                try:
-                    lr_probs = lr_model.predict_proba(processed_input)[0]
-                    lr_prob_dict = {str(lr_model.classes_[i]): float(p) for i, p in enumerate(lr_probs)}
-                    lr_pred_val = lr_model.predict(processed_input)[0]
-                    lr_label = str(lr_pred_val)
-                except Exception:
-                    pass
+            pass
 
     return bert_label, bert_prob_dict, lr_label, lr_prob_dict
 
@@ -137,15 +135,20 @@ with tab1:
 
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.success(f"### BERT Prediction: **{bert_label}**")
+                    if bert_label != "N/A":
+                        st.success(f"### BERT Prediction: **{bert_label}**")
+                    else:
+                        st.error("### BERT Prediction: **Failed**")
                 with col2:
-                    st.info(f"### Regression Prediction: **{lr_label}**")
+                    if lr_label != "N/A":
+                        st.info(f"### Logistic Regression: **{lr_label}**")
+                    else:
+                        st.error("### Logistic Regression: **Failed**")
                 
                 st.write("---")
                 st.write("### 📊 Model Comparisons & Confidence Dashboard")
                 
                 ui.draw_comparison_dashboard(bert_probs, lr_probs, bert_label, lr_label)
-                
         else:
             st.warning("Please enter text first.")
 

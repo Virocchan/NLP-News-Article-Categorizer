@@ -78,7 +78,7 @@ def draw_comparison_dashboard(bert_probabilities, lr_probabilities, bert_pred, l
         st.markdown("#### 1️⃣ BERT Category Confidence")
         fig1 = px.bar(df_bert, x="Confidence", y="Category", orientation="h",
                      color="Category", text_auto=".2%", color_discrete_sequence=px.colors.qualitative.Pastel)
-        fig1.update_layout(xaxis_tickformat="%", showlegend=False, height=260,
+        fig1.update_layout(xaxis=dict(range=[0, 1], tickformat="%"), showlegend=False, height=260,
                            paper_bgcolor="#0E1117", plot_bgcolor="#0E1117", font_color="white")
         st.plotly_chart(fig1, use_container_width=True)
 
@@ -86,7 +86,8 @@ def draw_comparison_dashboard(bert_probabilities, lr_probabilities, bert_pred, l
         st.markdown("#### 2️⃣ Linear Regression Category Confidence")
         fig2 = px.bar(df_lr, x="Confidence", y="Category", orientation="h",
                      color="Category", text_auto=".2%", color_discrete_sequence=px.colors.qualitative.Safe)
-        fig2.update_layout(xaxis_tickformat="%", showlegend=False, height=260,
+                    
+        fig2.update_layout(xaxis=dict(range=[0, 1], tickformat="%"), showlegend=False, height=260,
                            paper_bgcolor="#0E1117", plot_bgcolor="#0E1117", font_color="white")
         st.plotly_chart(fig2, use_container_width=True)
 
@@ -98,7 +99,7 @@ def draw_comparison_dashboard(bert_probabilities, lr_probabilities, bert_pred, l
         st.markdown("#### 3️⃣ Side-by-Side Category Distribution Comparison")
         fig3 = px.bar(df_combined, x="Category", y="Confidence", color="Model",
                      barmode="group", text_auto=".1%")
-        fig3.update_layout(yaxis_tickformat="%", height=300,
+        fig3.update_layout(yaxis=dict(range=[0, 1], tickformat="%"), height=300,
                            paper_bgcolor="#0E1117", plot_bgcolor="#0E1117", font_color="white")
         st.plotly_chart(fig3, use_container_width=True)
 
