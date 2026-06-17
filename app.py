@@ -5,6 +5,7 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import json
 import os
 import joblib
+from huggingface_hub import hf_hub_download
 import interface as ui
 
 st.set_page_config(page_title="R&R News Categorizer - Multilanguage", layout="wide")
@@ -40,7 +41,6 @@ def load_models():
     tokenizer = None
     bert_model = None
     lr_model = None
-    vectorizer = None
     
     with open(os.path.join(DIR, "label_mapping.json"), "r") as f:
         labels = json.load(f)
@@ -51,24 +51,17 @@ def load_models():
     except Exception as e:
         st.sidebar.error(f"⚠️ BERT Load Failed: {str(e)[:100]}")
 
-    lr_model_path = os.path.join(DIR, "logistic_regression.pkl")
-    if os.path.exists(lr_model_path):
-        lr_model = joblib.load(lr_model_path)
-    else:
-        st.sidebar.warning("⚠️ File 'logistic_regression.pkl' not found in your repository root folder.")
-
     try:
-        vec_path = os.path.join(DIR, "tfidf_vectorizer.pkl")
-        if os.path.exists(vec_path):
-            vectorizer = joblib.load(vec_path)
-    except Exception:
-        pass
+        lr_model_path = hf_hub_download(repo_id=BERT_REPO, filename="pipeline_logistic_regression.pkl")
+        lr_model = joblib.load(lr_model_path)
+    except Exception as e:
+        st.sidebar.error(f"⚠️ LR Pipeline Load Failed: {str(e)[:100]}")
 
-    return tokenizer, bert_model, lr_model, vectorizer, labels
+    return tokenizer, bert_model, lr_model, labels
 
 
 def predict_all(text):
-    tokenizer, bert_model, lr_model, vectorizer, labels = load_models()
+    tokenizer, bert_model, lr_model, labels = load_models()
     
     bert_label = "N/A"
     bert_prob_dict = {label: 0.0 for label in labels.values()}
@@ -97,21 +90,19 @@ def predict_all(text):
     
     if lr_model is not None:
         try:
-            processed_input = vectorizer.transform([text]) if vectorizer else [text]
-            
             if hasattr(lr_model, "predict_proba"):
-                lr_probs = lr_model.predict_proba(processed_input)[0]
+                lr_probs = lr_model.predict_proba([text])[0]
                 
                 if hasattr(lr_model, "classes_") and isinstance(lr_model.classes_[0], str):
                     lr_prob_dict = {str(c): float(lr_probs[i]) for i, c in enumerate(lr_model.classes_)}
-                    lr_pred_idx = lr_model.predict(processed_input)[0]
+                    lr_pred_idx = lr_model.predict([text])[0]
                     lr_label = str(lr_pred_idx)
                 else:
                     lr_prob_dict = {labels[str(i)]: float(p) for i, p in enumerate(lr_probs)}
-                    lr_pred_idx = lr_model.predict(processed_input)[0]
+                    lr_pred_idx = lr_model.predict([text])[0]
                     lr_label = labels[str(lr_pred_idx)] if str(lr_pred_idx) in labels else str(lr_pred_idx)
             else:
-                lr_pred = lr_model.predict(processed_input)[0]
+                lr_pred = lr_model.predict([text])[0]
                 lr_label = labels[str(lr_pred)] if str(lr_pred) in labels else str(lr_pred)
                 lr_prob_dict[lr_label] = 1.0
         except Exception:
