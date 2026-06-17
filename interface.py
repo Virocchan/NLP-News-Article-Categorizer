@@ -67,7 +67,7 @@ def draw_comparison_dashboard(bert_probabilities, lr_probabilities, bert_pred, l
     df_lr = pd.DataFrame({
         "Category": list(lr_probabilities.keys()),
         "Confidence": list(lr_probabilities.values()),
-        "Model": "Linear Regression"
+        "Model": "Logistic Regression"
     })
     
     df_combined = pd.concat([df_bert, df_lr])
@@ -83,7 +83,7 @@ def draw_comparison_dashboard(bert_probabilities, lr_probabilities, bert_pred, l
         st.plotly_chart(fig1, use_container_width=True)
 
     with col2:
-        st.markdown("#### 2️⃣ Linear Regression Category Confidence")
+        st.markdown("#### 2️⃣ Logistic Regression Category Confidence")
         fig2 = px.bar(df_lr, x="Confidence", y="Category", orientation="h",
                      color="Category", text_auto=".2%", color_discrete_sequence=px.colors.qualitative.Safe)
                     
