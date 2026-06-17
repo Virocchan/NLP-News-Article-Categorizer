@@ -4,7 +4,6 @@ import torch.nn.functional as F
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import json
 import os
-import joblib
 import interface as ui
 
 st.set_page_config(page_title="R&R News Categorizer - Multilanguage", layout="wide")
@@ -33,92 +32,42 @@ p, h1, h2, h3, h4, h5 {
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 IMG_DIR = os.path.join(DIR, "images")
-BERT_REPO = "Kimii2Dev/news-categorizer"
+
+MODEL_NAME = "Kimii2Dev/news-categorizer"
 
 @st.cache_resource
-def load_models():
-    tokenizer = None
-    bert_model = None
-    lr_model = None
-    vectorizer = None
-    
+def load_model():
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
+
     with open(os.path.join(DIR, "label_mapping.json"), "r") as f:
         labels = json.load(f)
 
-    try:
-        tokenizer = AutoTokenizer.from_pretrained(BERT_REPO, use_fast=True)
-        bert_model = AutoModelForSequenceClassification.from_pretrained(BERT_REPO)
-    except Exception:
-        pass
-
-    try:
-        lr_model_path = os.path.join(DIR, "logistic_regression.pkl")
-        if os.path.exists(lr_model_path):
-            lr_model = joblib.load(lr_model_path)
-    except Exception:
-        pass
-
-    try:
-        vec_path = os.path.join(DIR, "tfidf_vectorizer.pkl")
-        if os.path.exists(vec_path):
-            vectorizer = joblib.load(vec_path)
-    except Exception:
-        pass
-
-    return tokenizer, bert_model, lr_model, vectorizer, labels
+    return tokenizer, model, labels
 
 
-def predict_all(text):
-    tokenizer, bert_model, lr_model, vectorizer, labels = load_models()
-    
-    bert_label = "N/A"
-    bert_prob_dict = {label: 0.0 for label in labels.values()}
-    
-    if tokenizer is not None and bert_model is not None:
-        try:
-            inputs = tokenizer(
-                text,
-                return_tensors="pt",
-                truncation=True,
-                padding=True,
-                max_length=128
-            )
-            with torch.no_grad():
-                outputs = bert_model(**inputs)
-            
-            bert_probs = F.softmax(outputs.logits, dim=1).squeeze().tolist()
-            bert_id = torch.argmax(outputs.logits, dim=1).item()
-            bert_label = labels[str(bert_id)]
-            bert_prob_dict = {labels[str(i)]: float(p) for i, p in enumerate(bert_probs)}
-        except Exception:
-            pass
+def predict(text):
+    tokenizer, model, labels = load_model()
 
-    lr_label = "N/A"
-    lr_prob_dict = {label: 0.0 for label in labels.values()}
-    
-    if lr_model is not None:
-        try:
-            processed_input = vectorizer.transform([text]) if vectorizer else [text]
-            
-            if hasattr(lr_model, "predict_proba"):
-                lr_probs = lr_model.predict_proba(processed_input)[0]
-                
-                if hasattr(lr_model, "classes_") and isinstance(lr_model.classes_[0], str):
-                    lr_prob_dict = {str(c): float(lr_probs[i]) for i, c in enumerate(lr_model.classes_)}
-                    lr_pred_idx = lr_model.predict(processed_input)[0]
-                    lr_label = str(lr_pred_idx)
-                else:
-                    lr_prob_dict = {labels[str(i)]: float(p) for i, p in enumerate(lr_probs)}
-                    lr_pred_idx = lr_model.predict(processed_input)[0]
-                    lr_label = labels[str(lr_pred_idx)] if str(lr_pred_idx) in labels else str(lr_pred_idx)
-            else:
-                lr_pred = lr_model.predict(processed_input)[0]
-                lr_label = labels[str(lr_pred)] if str(lr_pred) in labels else str(lr_pred)
-                lr_prob_dict[lr_label] = 1.0
-        except Exception:
-            pass
+    inputs = tokenizer(
+        text,
+        return_tensors="pt",
+        truncation=True,
+        padding="max_length",
+        max_length=128
+    )
 
-    return bert_label, bert_prob_dict, lr_label, lr_prob_dict
+    with torch.no_grad():
+        outputs = model(**inputs)
+
+    probs = F.softmax(outputs.logits, dim=1).squeeze().tolist()
+
+    pred_id = torch.argmax(outputs.logits, dim=1).item()
+    pred_label = labels[str(pred_id)]
+
+    prob_dict = {labels[str(i)]: float(p) for i, p in enumerate(probs)}
+
+    return pred_label, prob_dict
 
 
 ui.setup_page()
@@ -131,25 +80,12 @@ with tab1:
 
     if st.button("Predict Category", type="primary"):
         if text_input:
-            with st.spinner("Analyzing with both models..."):
-                bert_label, bert_probs, lr_label, lr_probs = predict_all(text_input)
+            with st.spinner("Analyzing..."):
+                label, probabilities = predict(text_input)
 
-                col1, col2 = st.columns(2)
-                with col1:
-                    if bert_label != "N/A":
-                        st.success(f"### BERT Prediction: **{bert_label}**")
-                    else:
-                        st.error("### BERT Prediction: **Failed**")
-                with col2:
-                    if lr_label != "N/A":
-                        st.info(f"### Logistic Regression: **{lr_label}**")
-                    else:
-                        st.error("### Logistic Regression: **Failed**")
-                
-                st.write("---")
-                st.write("### 📊 Model Comparisons & Confidence Dashboard")
-                
-                ui.draw_comparison_dashboard(bert_probs, lr_probs, bert_label, lr_label)
+                st.success(f"### Predicted Category: **{label}**")
+                st.write("**Model Confidence:**")
+                ui.draw_confidence_chart(probabilities)
         else:
             st.warning("Please enter text first.")
 
