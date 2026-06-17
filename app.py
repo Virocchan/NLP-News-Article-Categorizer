@@ -48,22 +48,22 @@ def load_models():
         labels = json.load(f)
 
     try:
-        tokenizer = AutoTokenizer.from_pretrained(BERT_REPO)
+        tokenizer = AutoTokenizer.from_pretrained(BERT_REPO, local_files_only=False)
         bert_model = AutoModelForSequenceClassification.from_pretrained(BERT_REPO)
-    except Exception as e:
-        st.error(f"Failed to load BERT model from Hugging Face repository '{BERT_REPO}'. Verify repository files.")
+    except Exception:
+        pass
 
     try:
-        lr_model_path = hf_hub_download(repo_id=BERT_REPO, filename="linear_regression.pkl")
+        lr_model_path = hf_hub_download(repo_id=BERT_REPO, filename="logistic_regression.pkl")
         lr_model = joblib.load(lr_model_path)
     except Exception:
-        lr_model = None
+        pass
 
     try:
         vec_path = hf_hub_download(repo_id=BERT_REPO, filename="tfidf_vectorizer.pkl")
         vectorizer = joblib.load(vec_path)
     except Exception:
-        vectorizer = None
+        pass
 
     return tokenizer, bert_model, lr_model, vectorizer, labels
 
@@ -110,7 +110,14 @@ def predict_all(text):
                 lr_label = labels[str(lr_pred)] if str(lr_pred) in labels else str(lr_pred)
                 lr_prob_dict[lr_label] = 1.0
         except Exception:
-            pass
+            if hasattr(lr_model, "classes_"):
+                try:
+                    lr_probs = lr_model.predict_proba(processed_input)[0]
+                    lr_prob_dict = {str(lr_model.classes_[i]): float(p) for i, p in enumerate(lr_probs)}
+                    lr_pred_val = lr_model.predict(processed_input)[0]
+                    lr_label = str(lr_pred_val)
+                except Exception:
+                    pass
 
     return bert_label, bert_prob_dict, lr_label, lr_prob_dict
 
@@ -132,7 +139,7 @@ with tab1:
                 with col1:
                     st.success(f"### BERT Prediction: **{bert_label}**")
                 with col2:
-                    st.info(f"### Linear Regression Prediction: **{lr_label}**")
+                    st.info(f"### Regression Prediction: **{lr_label}**")
                 
                 st.write("---")
                 st.write("### 📊 Model Comparisons & Confidence Dashboard")
