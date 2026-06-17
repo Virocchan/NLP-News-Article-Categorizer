@@ -5,7 +5,6 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import json
 import os
 import joblib
-from huggingface_hub import hf_hub_download
 import interface as ui
 
 st.set_page_config(page_title="R&R News Categorizer - Multilanguage", layout="wide")
@@ -49,18 +48,20 @@ def load_models():
     try:
         tokenizer = AutoTokenizer.from_pretrained(BERT_REPO, use_fast=True)
         bert_model = AutoModelForSequenceClassification.from_pretrained(BERT_REPO)
-    except Exception as e:
-        st.sidebar.error(f"⚠️ BERT Load Failed: {str(e)[:100]}")
+    except Exception:
+        pass
 
     try:
-        lr_model_path = hf_hub_download(repo_id=BERT_REPO, filename="logistic_regression.pkl")
-        lr_model = joblib.load(lr_model_path)
-    except Exception as e:
-        st.sidebar.error(f"⚠️ LR Model Load Failed: {str(e)[:100]}")
+        lr_model_path = os.path.join(DIR, "logistic_regression.pkl")
+        if os.path.exists(lr_model_path):
+            lr_model = joblib.load(lr_model_path)
+    except Exception:
+        pass
 
     try:
-        vec_path = hf_hub_download(repo_id=BERT_REPO, filename="tfidf_vectorizer.pkl")
-        vectorizer = joblib.load(vec_path)
+        vec_path = os.path.join(DIR, "tfidf_vectorizer.pkl")
+        if os.path.exists(vec_path):
+            vectorizer = joblib.load(vec_path)
     except Exception:
         pass
 
