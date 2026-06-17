@@ -39,11 +39,19 @@ BERT_REPO = "Kimii2Dev/news-categorizer"
 
 @st.cache_resource
 def load_models():
-    tokenizer = AutoTokenizer.from_pretrained(BERT_REPO)
-    bert_model = AutoModelForSequenceClassification.from_pretrained(BERT_REPO)
-
+    tokenizer = None
+    bert_model = None
+    lr_model = None
+    vectorizer = None
+    
     with open(os.path.join(DIR, "label_mapping.json"), "r") as f:
         labels = json.load(f)
+
+    try:
+        tokenizer = AutoTokenizer.from_pretrained(BERT_REPO)
+        bert_model = AutoModelForSequenceClassification.from_pretrained(BERT_REPO)
+    except Exception as e:
+        st.error(f"Failed to load BERT model from Hugging Face repository '{BERT_REPO}'. Verify repository files.")
 
     try:
         lr_model_path = hf_hub_download(repo_id=BERT_REPO, filename="linear_regression.pkl")
@@ -63,20 +71,27 @@ def load_models():
 def predict_all(text):
     tokenizer, bert_model, lr_model, vectorizer, labels = load_models()
     
-    inputs = tokenizer(
-        text,
-        return_tensors="pt",
-        truncation=True,
-        padding="max_length",
-        max_length=128
-    )
-    with torch.no_grad():
-        outputs = bert_model(**inputs)
+    bert_label = "N/A"
+    bert_prob_dict = {label: 0.0 for label in labels.values()}
     
-    bert_probs = F.softmax(outputs.logits, dim=1).squeeze().tolist()
-    bert_id = torch.argmax(outputs.logits, dim=1).item()
-    bert_label = labels[str(bert_id)]
-    bert_prob_dict = {labels[str(i)]: float(p) for i, p in enumerate(bert_probs)}
+    if tokenizer is not None and bert_model is not None:
+        try:
+            inputs = tokenizer(
+                text,
+                return_tensors="pt",
+                truncation=True,
+                padding="max_length",
+                max_length=128
+            )
+            with torch.no_grad():
+                outputs = bert_model(**inputs)
+            
+            bert_probs = F.softmax(outputs.logits, dim=1).squeeze().tolist()
+            bert_id = torch.argmax(outputs.logits, dim=1).item()
+            bert_label = labels[str(bert_id)]
+            bert_prob_dict = {labels[str(i)]: float(p) for i, p in enumerate(bert_probs)}
+        except Exception:
+            pass
 
     lr_label = "N/A"
     lr_prob_dict = {label: 0.0 for label in labels.values()}
