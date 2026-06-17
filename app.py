@@ -93,10 +93,16 @@ def predict_all(text):
             if hasattr(lr_model, "predict_proba"):
                 lr_probs = lr_model.predict_proba([text])[0]
                 
-                if hasattr(lr_model, "classes_") and isinstance(lr_model.classes_[0], str):
-                    lr_prob_dict = {str(c): float(lr_probs[i]) for i, c in enumerate(lr_model.classes_)}
-                    lr_pred_idx = lr_model.predict([text])[0]
-                    lr_label = str(lr_pred_idx)
+                if hasattr(lr_model, "classes_"):
+                    raw_classes = [str(c) for c in lr_model.classes_]
+                    
+                    if raw_classes[0].isdigit():
+                        lr_prob_dict = {labels[str(c)]: float(lr_probs[i]) for i, c in enumerate(raw_classes)}
+                        lr_pred_raw = str(lr_model.predict([text])[0])
+                        lr_label = labels[lr_pred_raw]
+                    else:
+                        lr_prob_dict = {str(c): float(lr_probs[i]) for i, c in enumerate(raw_classes)}
+                        lr_label = str(lr_model.predict([text])[0])
                 else:
                     lr_prob_dict = {labels[str(i)]: float(p) for i, p in enumerate(lr_probs)}
                     lr_pred_idx = lr_model.predict([text])[0]
