@@ -48,15 +48,14 @@ def load_models():
     try:
         tokenizer = AutoTokenizer.from_pretrained(BERT_REPO, use_fast=True)
         bert_model = AutoModelForSequenceClassification.from_pretrained(BERT_REPO)
-    except Exception:
-        pass
+    except Exception as e:
+        st.sidebar.error(f"⚠️ BERT Load Failed: {str(e)[:100]}")
 
-    try:
-        lr_model_path = os.path.join(DIR, "logistic_regression.pkl")
-        if os.path.exists(lr_model_path):
-            lr_model = joblib.load(lr_model_path)
-    except Exception:
-        pass
+    lr_model_path = os.path.join(DIR, "logistic_regression.pkl")
+    if os.path.exists(lr_model_path):
+        lr_model = joblib.load(lr_model_path)
+    else:
+        st.sidebar.warning("⚠️ File 'logistic_regression.pkl' not found in your repository root folder.")
 
     try:
         vec_path = os.path.join(DIR, "tfidf_vectorizer.pkl")
