@@ -7,3 +7,5 @@ matplotlib
 pandas
 numpy<2
 plotly
+joblib
+huggingface_hub
