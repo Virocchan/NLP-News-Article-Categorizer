@@ -80,28 +80,23 @@ def get_scikit_probabilities(model, text, labels):
             else:
                 probs = None
 
-            if hasattr(model, "classes_"):
-                raw_classes = [str(c) for c in model.classes_]
-                if raw_classes[0].isdigit():
-                    if probs is not None:
-                        prob_dict = {labels[str(c)]: float(probs[i]) for i, c in enumerate(raw_classes)}
-                    pred_raw = str(model.predict([text])[0])
-                    label_pred = labels[pred_raw]
-                else:
-                    if probs is not None:
-                        prob_dict = {str(c): float(probs[i]) for i, c in enumerate(raw_classes)}
-                    label_pred = str(model.predict([text])[0])
+            pred_raw = model.predict([text])[0]
+            label_pred = labels.get(str(pred_raw), str(pred_raw))
+
+            if hasattr(model, "classes_") and probs is not None:
+                for i, c in enumerate(model.classes_):
+                    cat_name = labels.get(str(c), str(c))
+                    prob_dict[cat_name] = float(probs[i])
+            elif probs is not None:
+                for i, p in enumerate(probs):
+                    cat_name = labels.get(str(i), f"Class {i}")
+                    prob_dict[cat_name] = float(p)
             else:
-                if probs is not None:
-                    prob_dict = {labels[str(i)]: float(p) for i, p in enumerate(probs)}
-                pred_idx = model.predict([text])[0]
-                label_pred = labels[str(pred_idx)] if str(pred_idx) in labels else str(pred_idx)
-                
-            if probs is None and label_pred != "N/A":
                 prob_dict[label_pred] = 1.0
                 
         except Exception:
-            pass
+            if label_pred != "N/A":
+                prob_dict[label_pred] = 1.0
             
     return label_pred, prob_dict
 
@@ -111,6 +106,7 @@ def predict_all(text):
     
     bert_label = "N/A"
     bert_prob_dict = {label: 0.0 for label in labels.values()}
+    
     if tokenizer is not None and bert_model is not None:
         try:
             inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=128)
@@ -118,8 +114,11 @@ def predict_all(text):
                 outputs = bert_model(**inputs)
             bert_probs = F.softmax(outputs.logits, dim=1).squeeze().tolist()
             bert_id = torch.argmax(outputs.logits, dim=1).item()
-            bert_label = labels[str(bert_id)]
-            bert_prob_dict = {labels[str(i)]: float(p) for i, p in enumerate(bert_probs)}
+            bert_label = labels.get(str(bert_id), str(bert_id))
+            
+            for i, p in enumerate(bert_probs):
+                cat_name = labels.get(str(i), f"Class {i}")
+                bert_prob_dict[cat_name] = float(p)
         except Exception:
             pass
 
