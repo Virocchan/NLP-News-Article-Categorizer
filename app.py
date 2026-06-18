@@ -41,13 +41,8 @@ def load_models():
     lr_model = None
     svm_model = None
     
-    try:
-        labels_path = hf_hub_download(repo_id=BERT_REPO, filename="label_mapping.json")
-        with open(labels_path, "r") as f:
-            labels = json.load(f)
-    except Exception as e:
-        st.sidebar.error(f"⚠️ Label Mapping Load Failed: {str(e)[:50]}")
-        labels = {"0": "World", "1": "Sports", "2": "Business", "3": "Sci/Tech"}
+    bert_labels = {"0": "World", "1": "Sports", "2": "Business", "3": "Sci/Tech"}
+    scikit_labels = {"1": "World", "2": "Sports", "3": "Business", "4": "Sci/Tech"}
 
     try:
         tokenizer = AutoTokenizer.from_pretrained(BERT_REPO, use_fast=True)
@@ -67,15 +62,18 @@ def load_models():
     except Exception as e:
         st.sidebar.error(f"⚠️ SVM Load Failed: {str(e)[:50]}")
 
-    return tokenizer, bert_model, lr_model, svm_model, labels
+    return tokenizer, bert_model, lr_model, svm_model, bert_labels, scikit_labels
 
 
-def get_scikit_probabilities(model, text, labels):
-    prob_dict = {label: 0.0 for label in labels.values()}
+def get_scikit_predictions(model, text, scikit_labels):
+    prob_dict = {label: 0.0 for label in scikit_labels.values()}
     label_pred = "N/A"
     
     if model is not None:
         try:
+            pred_raw = str(model.predict([text])[0])
+            label_pred = scikit_labels.get(pred_raw, "N/A")
+            
             if hasattr(model, "predict_proba"):
                 probs = model.predict_proba([text])[0]
             elif hasattr(model, "decision_function"):
@@ -85,47 +83,25 @@ def get_scikit_probabilities(model, text, labels):
             else:
                 probs = None
 
-            pred_raw = model.predict([text])[0]
-            try:
-                pred_idx = int(pred_raw)
-                if pred_idx >= 4:
-                    pred_idx = pred_idx % 4
-                label_pred = labels.get(str(pred_idx), list(labels.values())[0])
-            except ValueError:
-                label_pred = labels.get(str(pred_raw), list(labels.values())[0])
-
-            if probs is not None:
-                for i, p in enumerate(probs):
-                    try:
-                        class_idx = int(model.classes_[i] if hasattr(model, "classes_") else i)
-                        if class_idx < 4:
-                            cat_name = labels.get(str(class_idx))
-                            if cat_name:
-                                prob_dict[cat_name] += float(p)
-                        else:
-                            fallback_idx = class_idx % 4
-                            cat_name = labels.get(str(fallback_idx))
-                            if cat_name:
-                                prob_dict[cat_name] += float(p)
-                    except ValueError:
-                        cat_name = str(model.classes_[i] if hasattr(model, "classes_") else i)
-                        if cat_name in prob_dict:
-                            prob_dict[cat_name] += float(p)
-            else:
+            if probs is not None and hasattr(model, "classes_"):
+                for idx, class_val in enumerate(model.classes_):
+                    class_str = str(class_val)
+                    cat_name = scikit_labels.get(class_str)
+                    if cat_name:
+                        prob_dict[cat_name] = float(probs[idx])
+            elif label_pred != "N/A":
                 prob_dict[label_pred] = 1.0
-                
         except Exception:
-            if label_pred != "N/A":
-                prob_dict[label_pred] = 1.0
+            pass
             
     return label_pred, prob_dict
 
 
 def predict_all(text):
-    tokenizer, bert_model, lr_model, svm_model, labels = load_models()
+    tokenizer, bert_model, lr_model, svm_model, bert_labels, scikit_labels = load_models()
     
     bert_label = "N/A"
-    bert_prob_dict = {label: 0.0 for label in labels.values()}
+    bert_prob_dict = {label: 0.0 for label in bert_labels.values()}
     
     if tokenizer is not None and bert_model is not None:
         try:
@@ -133,29 +109,20 @@ def predict_all(text):
             with torch.no_grad():
                 outputs = bert_model(**inputs)
             bert_probs = F.softmax(outputs.logits, dim=1).squeeze().tolist()
-            bert_id = torch.argmax(outputs.logits, dim=1).item()
+            bert_id = str(torch.argmax(outputs.logits, dim=1).item())
+            bert_label = bert_labels.get(bert_id, "N/A")
             
-            if bert_id >= 4:
-                bert_id = bert_id % 4
-            bert_label = labels.get(str(bert_id), list(labels.values())[0])
-            
-            for i, p in enumerate(bert_probs):
-                if i < 4:
-                    cat_name = labels.get(str(i))
-                    if cat_name:
-                        bert_prob_dict[cat_name] += float(p)
-                else:
-                    fallback_idx = i % 4
-                    cat_name = labels.get(str(fallback_idx))
-                    if cat_name:
-                        bert_prob_dict[cat_name] += float(p)
+            for idx, p in enumerate(bert_probs):
+                cat_name = bert_labels.get(str(idx))
+                if cat_name:
+                    bert_prob_dict[cat_name] = float(p)
         except Exception:
             pass
 
-    lr_label, lr_prob_dict = get_scikit_probabilities(lr_model, text, labels)
-    svm_label, svm_prob_dict = get_scikit_probabilities(svm_model, text, labels)
+    lr_label, lr_probs = get_scikit_predictions(lr_model, text, scikit_labels)
+    svm_label, svm_probs = get_scikit_predictions(svm_model, text, scikit_labels)
 
-    return bert_label, bert_prob_dict, lr_label, lr_prob_dict, svm_label, svm_prob_dict
+    return bert_label, bert_prob_dict, lr_label, lr_probs, svm_label, svm_probs
 
 
 ui.setup_page()
