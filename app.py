@@ -41,8 +41,13 @@ def load_models():
     lr_model = None
     svm_model = None
     
-    with open(os.path.join(DIR, "label_mapping.json"), "r") as f:
-        labels = json.load(f)
+    try:
+        labels_path = hf_hub_download(repo_id=BERT_REPO, filename="label_mapping.json")
+        with open(labels_path, "r") as f:
+            labels = json.load(f)
+    except Exception as e:
+        st.sidebar.error(f"⚠️ Label Mapping Load Failed: {str(e)[:50]}")
+        labels = {"0": "World", "1": "Sports", "2": "Business", "3": "Science/Tech"}
 
     try:
         tokenizer = AutoTokenizer.from_pretrained(BERT_REPO, use_fast=True)
@@ -81,21 +86,25 @@ def get_scikit_probabilities(model, text, labels):
                 probs = None
 
             pred_raw = model.predict([text])[0]
-            label_pred = labels.get(str(pred_raw), str(pred_raw))
+            label_pred = labels.get(str(pred_raw), f"Unknown Class ({pred_raw})")
 
             if hasattr(model, "classes_") and probs is not None:
                 for i, c in enumerate(model.classes_):
-                    cat_name = labels.get(str(c), str(c))
+                    cat_name = labels.get(str(c), f"Class {c}")
                     prob_dict[cat_name] = float(probs[i])
             elif probs is not None:
                 for i, p in enumerate(probs):
                     cat_name = labels.get(str(i), f"Class {i}")
                     prob_dict[cat_name] = float(p)
             else:
+                if label_pred not in prob_dict:
+                    prob_dict[label_pred] = 0.0
                 prob_dict[label_pred] = 1.0
                 
         except Exception:
             if label_pred != "N/A":
+                if label_pred not in prob_dict:
+                    prob_dict[label_pred] = 0.0
                 prob_dict[label_pred] = 1.0
             
     return label_pred, prob_dict
@@ -114,10 +123,12 @@ def predict_all(text):
                 outputs = bert_model(**inputs)
             bert_probs = F.softmax(outputs.logits, dim=1).squeeze().tolist()
             bert_id = torch.argmax(outputs.logits, dim=1).item()
-            bert_label = labels.get(str(bert_id), str(bert_id))
+            bert_label = labels.get(str(bert_id), f"Unknown Class ({bert_id})")
             
             for i, p in enumerate(bert_probs):
                 cat_name = labels.get(str(i), f"Class {i}")
+                if cat_name not in bert_prob_dict:
+                    bert_prob_dict[cat_name] = 0.0
                 bert_prob_dict[cat_name] = float(p)
         except Exception:
             pass
