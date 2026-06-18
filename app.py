@@ -86,25 +86,36 @@ def get_scikit_probabilities(model, text, labels):
                 probs = None
 
             pred_raw = model.predict([text])[0]
-            label_pred = labels.get(str(pred_raw), f"Unknown Class ({pred_raw})")
+            try:
+                pred_idx = int(pred_raw)
+                if pred_idx >= 4:
+                    pred_idx = pred_idx % 4
+                label_pred = labels.get(str(pred_idx), list(labels.values())[0])
+            except ValueError:
+                label_pred = labels.get(str(pred_raw), list(labels.values())[0])
 
-            if hasattr(model, "classes_") and probs is not None:
-                for i, c in enumerate(model.classes_):
-                    cat_name = labels.get(str(c), f"Class {c}")
-                    prob_dict[cat_name] = float(probs[i])
-            elif probs is not None:
+            if probs is not None:
                 for i, p in enumerate(probs):
-                    cat_name = labels.get(str(i), f"Class {i}")
-                    prob_dict[cat_name] = float(p)
+                    try:
+                        class_idx = int(model.classes_[i] if hasattr(model, "classes_") else i)
+                        if class_idx < 4:
+                            cat_name = labels.get(str(class_idx))
+                            if cat_name:
+                                prob_dict[cat_name] += float(p)
+                        else:
+                            fallback_idx = class_idx % 4
+                            cat_name = labels.get(str(fallback_idx))
+                            if cat_name:
+                                prob_dict[cat_name] += float(p)
+                    except ValueError:
+                        cat_name = str(model.classes_[i] if hasattr(model, "classes_") else i)
+                        if cat_name in prob_dict:
+                            prob_dict[cat_name] += float(p)
             else:
-                if label_pred not in prob_dict:
-                    prob_dict[label_pred] = 0.0
                 prob_dict[label_pred] = 1.0
                 
         except Exception:
             if label_pred != "N/A":
-                if label_pred not in prob_dict:
-                    prob_dict[label_pred] = 0.0
                 prob_dict[label_pred] = 1.0
             
     return label_pred, prob_dict
@@ -123,13 +134,21 @@ def predict_all(text):
                 outputs = bert_model(**inputs)
             bert_probs = F.softmax(outputs.logits, dim=1).squeeze().tolist()
             bert_id = torch.argmax(outputs.logits, dim=1).item()
-            bert_label = labels.get(str(bert_id), f"Unknown Class ({bert_id})")
+            
+            if bert_id >= 4:
+                bert_id = bert_id % 4
+            bert_label = labels.get(str(bert_id), list(labels.values())[0])
             
             for i, p in enumerate(bert_probs):
-                cat_name = labels.get(str(i), f"Class {i}")
-                if cat_name not in bert_prob_dict:
-                    bert_prob_dict[cat_name] = 0.0
-                bert_prob_dict[cat_name] = float(p)
+                if i < 4:
+                    cat_name = labels.get(str(i))
+                    if cat_name:
+                        bert_prob_dict[cat_name] += float(p)
+                else:
+                    fallback_idx = i % 4
+                    cat_name = labels.get(str(fallback_idx))
+                    if cat_name:
+                        bert_prob_dict[cat_name] += float(p)
         except Exception:
             pass
 
