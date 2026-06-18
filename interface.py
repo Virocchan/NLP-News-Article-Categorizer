@@ -28,7 +28,7 @@ def setup_page():
 
     st.title("📰 R&R News Categorizer - Multilanguage")
     st.markdown("### What our system about?")
-    st.markdown("A system that automatically categorizes news articles into topics like World, Science/Technology, Sports and Business.")
+    st.markdown("A system that automatically categorizes news articles into topics like World, Sports, Business, and Sci/Tech.")
     st.markdown("### How to use this app:")
     st.markdown("""
     1. Type or paste a news article into the text box below.

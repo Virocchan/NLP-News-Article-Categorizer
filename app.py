@@ -47,7 +47,7 @@ def load_models():
             labels = json.load(f)
     except Exception as e:
         st.sidebar.error(f"⚠️ Label Mapping Load Failed: {str(e)[:50]}")
-        labels = {"0": "World", "1": "Sports", "2": "Business", "3": "Science/Tech"}
+        labels = {"0": "World", "1": "Sports", "2": "Business", "3": "Sci/Tech"}
 
     try:
         tokenizer = AutoTokenizer.from_pretrained(BERT_REPO, use_fast=True)
