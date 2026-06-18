@@ -138,7 +138,7 @@ with tab1:
 
     if st.button("Predict Category", type="primary"):
         if text_input:
-            with st.spinner("Downloading and processing inputs across your 3 Hugging Face models..."):
+            with st.spinner("Processing inputs across models..."):
                 bert_label, bert_probs, lr_label, lr_probs, svm_label, svm_probs = predict_all(text_input)
 
                 col1, col2, col3 = st.columns(3)

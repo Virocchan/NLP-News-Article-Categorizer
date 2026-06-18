@@ -80,9 +80,9 @@ def draw_comparison_dashboard(bert_probabilities, lr_probabilities, svm_probabil
     with colB:
         st.markdown("#### 5️⃣ Winning Confidence Gauge Metrics")
         
-        bert_top_conf = bert_probabilities.get(bert_pred, 0.0)
-        lr_top_conf = lr_probabilities.get(lr_pred, 0.0)
-        svm_top_conf = svm_probabilities.get(svm_pred, 0.0)
+        bert_top_conf = bert_probabilities.get(bert_pred, 0.0) if bert_pred != "N/A" else 0.0
+        lr_top_conf = lr_probabilities.get(lr_pred, 0.0) if lr_pred != "N/A" else 0.0
+        svm_top_conf = svm_probabilities.get(svm_pred, 0.0) if svm_pred != "N/A" else 0.0
         
         fig5 = go.Figure()
         
