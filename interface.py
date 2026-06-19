@@ -1,4 +1,4 @@
-import streamlit st
+import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -43,7 +43,6 @@ def draw_comparison_dashboard(bert_probabilities, bow_probabilities, pipe_probab
     df_bow = pd.DataFrame({"Category": list(bow_probabilities.keys()), "Confidence": list(bow_probabilities.values()), "Model": "BoW Logistic Regression"})
     df_pipe = pd.DataFrame({"Category": list(pipe_probabilities.keys()), "Confidence": list(pipe_probabilities.values()), "Model": "Pipeline Logistic Regression"})
     
-    # Combined df for scikit comparisons only
     df_scikit_compare = pd.concat([df_bow, df_pipe])
 
     st.markdown("### 📈 Confidence Breakdowns per Model")
@@ -74,7 +73,6 @@ def draw_comparison_dashboard(bert_probabilities, bow_probabilities, pipe_probab
     
     with colA:
         st.markdown("#### 4️⃣ BoW vs. Pipeline LogReg Distribution Comparison")
-        # Direct structural comparison between the two scikit configurations
         fig4 = px.bar(df_scikit_compare, x="Category", y="Confidence", color="Model", barmode="group", text_auto=".1%", color_discrete_map={"BoW Logistic Regression": "#fe5f55", "Pipeline Logistic Regression": "#3a86ff"})
         fig4.update_layout(yaxis=dict(range=[0, 1], tickformat="%"), height=350, paper_bgcolor="#0E1117", plot_bgcolor="#0E1117", font_color="white")
         st.plotly_chart(fig4, use_container_width=True)

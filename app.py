@@ -3,9 +3,17 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import os
+import sys
 import joblib
 from huggingface_hub import hf_hub_download
 import numpy as np
+
+DIR = os.path.dirname(os.path.abspath(__file__))
+IMG_DIR = os.path.join(DIR, "images")
+
+if DIR not in sys.path:
+    sys.path.append(DIR)
+
 import interface as ui
 
 st.set_page_config(page_title="R&R News Categorizer - Multilanguage", layout="wide")
@@ -29,8 +37,6 @@ p, h1, h2, h3, h4, h5 {
 </style>
 """, unsafe_allow_html=True)
 
-DIR = os.path.dirname(os.path.abspath(__file__))
-IMG_DIR = os.path.join(DIR, "images")
 BERT_REPO = "Kimii2Dev/news-categorizer"
 
 @st.cache_resource
@@ -43,21 +49,18 @@ def load_models():
     bert_labels = {"0": "World", "1": "Sports", "2": "Business", "3": "Sci/Tech"}
     scikit_labels = {"1": "World", "2": "Sports", "3": "Business", "4": "Sci/Tech"}
 
-    # 1. Load BERT Model
     try:
         tokenizer = AutoTokenizer.from_pretrained(BERT_REPO, use_fast=True)
         bert_model = AutoModelForSequenceClassification.from_pretrained(BERT_REPO)
     except Exception as e:
         st.sidebar.error(f"⚠️ BERT Load Failed: {str(e)[:50]}")
 
-    # 2. Load BoW Logistic Regression
     try:
         bow_lr_path = hf_hub_download(repo_id=BERT_REPO, filename="bow_logistic_regression.pkl")
         bow_lr_model = joblib.load(bow_lr_path)
     except Exception as e:
         st.sidebar.error(f"⚠️ BoW LogReg Load Failed: {str(e)[:50]}")
 
-    # 3. Load Pipeline Logistic Regression
     try:
         pipe_lr_path = hf_hub_download(repo_id=BERT_REPO, filename="pipeline_logistic_regression.pkl")
         pipe_lr_model = joblib.load(pipe_lr_path)
