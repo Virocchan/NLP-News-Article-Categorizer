@@ -2,7 +2,6 @@ import streamlit as st
 import torch
 import torch.nn.functional as F
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
-import json
 import os
 import joblib
 from huggingface_hub import hf_hub_download
@@ -38,31 +37,34 @@ BERT_REPO = "Kimii2Dev/news-categorizer"
 def load_models():
     tokenizer = None
     bert_model = None
-    lr_model = None
-    svm_model = None
+    bow_lr_model = None
+    pipe_lr_model = None
     
     bert_labels = {"0": "World", "1": "Sports", "2": "Business", "3": "Sci/Tech"}
     scikit_labels = {"1": "World", "2": "Sports", "3": "Business", "4": "Sci/Tech"}
 
+    # 1. Load BERT Model
     try:
         tokenizer = AutoTokenizer.from_pretrained(BERT_REPO, use_fast=True)
         bert_model = AutoModelForSequenceClassification.from_pretrained(BERT_REPO)
     except Exception as e:
         st.sidebar.error(f"⚠️ BERT Load Failed: {str(e)[:50]}")
 
+    # 2. Load BoW Logistic Regression
     try:
-        lr_model_path = hf_hub_download(repo_id=BERT_REPO, filename="bow_logistic_regression.pkl")
-        lr_model = joblib.load(lr_model_path)
+        bow_lr_path = hf_hub_download(repo_id=BERT_REPO, filename="bow_logistic_regression.pkl")
+        bow_lr_model = joblib.load(bow_lr_path)
     except Exception as e:
-        st.sidebar.error(f"⚠️ LogReg Load Failed: {str(e)[:50]}")
+        st.sidebar.error(f"⚠️ BoW LogReg Load Failed: {str(e)[:50]}")
 
+    # 3. Load Pipeline Logistic Regression
     try:
-        svm_model_path = hf_hub_download(repo_id=BERT_REPO, filename="bow_linear_svm.pkl")
-        svm_model = joblib.load(svm_model_path)
+        pipe_lr_path = hf_hub_download(repo_id=BERT_REPO, filename="pipeline_logistic_regression.pkl")
+        pipe_lr_model = joblib.load(pipe_lr_path)
     except Exception as e:
-        st.sidebar.error(f"⚠️ SVM Load Failed: {str(e)[:50]}")
+        st.sidebar.error(f"⚠️ Pipeline LogReg Load Failed: {str(e)[:50]}")
 
-    return tokenizer, bert_model, lr_model, svm_model, bert_labels, scikit_labels
+    return tokenizer, bert_model, bow_lr_model, pipe_lr_model, bert_labels, scikit_labels
 
 
 def get_scikit_predictions(model, text, scikit_labels):
@@ -98,7 +100,7 @@ def get_scikit_predictions(model, text, scikit_labels):
 
 
 def predict_all(text):
-    tokenizer, bert_model, lr_model, svm_model, bert_labels, scikit_labels = load_models()
+    tokenizer, bert_model, bow_lr_model, pipe_lr_model, bert_labels, scikit_labels = load_models()
     
     bert_label = "N/A"
     bert_prob_dict = {label: 0.0 for label in bert_labels.values()}
@@ -119,10 +121,10 @@ def predict_all(text):
         except Exception:
             pass
 
-    lr_label, lr_probs = get_scikit_predictions(lr_model, text, scikit_labels)
-    svm_label, svm_probs = get_scikit_predictions(svm_model, text, scikit_labels)
+    bow_lr_label, bow_lr_probs = get_scikit_predictions(bow_lr_model, text, scikit_labels)
+    pipe_lr_label, pipe_lr_probs = get_scikit_predictions(pipe_lr_model, text, scikit_labels)
 
-    return bert_label, bert_prob_dict, lr_label, lr_probs, svm_label, svm_probs
+    return bert_label, bert_prob_dict, bow_lr_label, bow_lr_probs, pipe_lr_label, pipe_lr_probs
 
 
 ui.setup_page()
@@ -136,7 +138,7 @@ with tab1:
     if st.button("Predict Category", type="primary"):
         if text_input:
             with st.spinner("Processing inputs across models..."):
-                bert_label, bert_probs, lr_label, lr_probs, svm_label, svm_probs = predict_all(text_input)
+                bert_label, bert_probs, bow_label, bow_probs, pipe_label, pipe_probs = predict_all(text_input)
 
                 col1, col2, col3 = st.columns(3)
                 with col1:
@@ -145,19 +147,19 @@ with tab1:
                     else:
                         st.error("### BERT:\n**Failed**")
                 with col2:
-                    if lr_label != "N/A":
-                        st.info(f"### Logistic Regression:\n**{lr_label}**")
+                    if bow_label != "N/A":
+                        st.info(f"### BoW LogReg:\n**{bow_label}**")
                     else:
-                        st.error("### Log Reg:\n**Failed**")
+                        st.error("### BoW LogReg:\n**Failed**")
                 with col3:
-                    if svm_label != "N/A":
-                        st.warning(f"### Linear SVM:\n**{svm_label}**")
+                    if pipe_label != "N/A":
+                        st.warning(f"### Pipeline LogReg:\n**{pipe_label}**")
                     else:
-                        st.error("### SVM:\n**Failed**")
+                        st.error("### Pipeline LogReg:\n**Failed**")
                 
                 st.write("---")
                 st.write("### 📊 Model Comparisons & Confidence Dashboard")
-                ui.draw_comparison_dashboard(bert_probs, lr_probs, svm_probs, bert_label, lr_label, svm_label)
+                ui.draw_comparison_dashboard(bert_probs, bow_probs, pipe_probs, bert_label, bow_label, pipe_label)
         else:
             st.warning("Please enter text first.")
 

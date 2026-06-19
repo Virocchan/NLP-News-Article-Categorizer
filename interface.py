@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -38,12 +38,13 @@ def setup_page():
     st.divider()
 
 
-def draw_comparison_dashboard(bert_probabilities, lr_probabilities, svm_probabilities, bert_pred, lr_pred, svm_pred):
+def draw_comparison_dashboard(bert_probabilities, bow_probabilities, pipe_probabilities, bert_pred, bow_pred, pipe_pred):
     df_bert = pd.DataFrame({"Category": list(bert_probabilities.keys()), "Confidence": list(bert_probabilities.values()), "Model": "BERT"})
-    df_lr = pd.DataFrame({"Category": list(lr_probabilities.keys()), "Confidence": list(lr_probabilities.values()), "Model": "Logistic Regression"})
-    df_svm = pd.DataFrame({"Category": list(svm_probabilities.keys()), "Confidence": list(svm_probabilities.values()), "Model": "Linear SVM"})
+    df_bow = pd.DataFrame({"Category": list(bow_probabilities.keys()), "Confidence": list(bow_probabilities.values()), "Model": "BoW Logistic Regression"})
+    df_pipe = pd.DataFrame({"Category": list(pipe_probabilities.keys()), "Confidence": list(pipe_probabilities.values()), "Model": "Pipeline Logistic Regression"})
     
-    df_combined = pd.concat([df_bert, df_lr, df_svm])
+    # Combined df for scikit comparisons only
+    df_scikit_compare = pd.concat([df_bow, df_pipe])
 
     st.markdown("### 📈 Confidence Breakdowns per Model")
     c1, c2, c3 = st.columns(3)
@@ -55,14 +56,14 @@ def draw_comparison_dashboard(bert_probabilities, lr_probabilities, svm_probabil
         st.plotly_chart(fig1, use_container_width=True)
 
     with c2:
-        st.markdown("#### 2️⃣ Logistic Regression Confidence")
-        fig2 = px.bar(df_lr, x="Confidence", y="Category", orientation="h", color="Category", text_auto=".1%", color_discrete_sequence=px.colors.qualitative.Safe)
+        st.markdown("#### 2️⃣ BoW Logistic Regression Confidence")
+        fig2 = px.bar(df_bow, x="Confidence", y="Category", orientation="h", color="Category", text_auto=".1%", color_discrete_sequence=px.colors.qualitative.Safe)
         fig2.update_layout(xaxis=dict(range=[0, 1], tickformat="%"), showlegend=False, height=240, paper_bgcolor="#0E1117", plot_bgcolor="#0E1117", font_color="white", margin=dict(l=20, r=20, t=20, b=20))
         st.plotly_chart(fig2, use_container_width=True)
 
     with c3:
-        st.markdown("#### 3️⃣ Linear SVM Confidence")
-        fig3 = px.bar(df_svm, x="Confidence", y="Category", orientation="h", color="Category", text_auto=".1%", color_discrete_sequence=px.colors.qualitative.Prism)
+        st.markdown("#### 3️⃣ Pipeline Logistic Regression Confidence")
+        fig3 = px.bar(df_pipe, x="Confidence", y="Category", orientation="h", color="Category", text_auto=".1%", color_discrete_sequence=px.colors.qualitative.Prism)
         fig3.update_layout(xaxis=dict(range=[0, 1], tickformat="%"), showlegend=False, height=240, paper_bgcolor="#0E1117", plot_bgcolor="#0E1117", font_color="white", margin=dict(l=20, r=20, t=20, b=20))
         st.plotly_chart(fig3, use_container_width=True)
 
@@ -72,17 +73,18 @@ def draw_comparison_dashboard(bert_probabilities, lr_probabilities, svm_probabil
     colA, colB = st.columns([3, 2])
     
     with colA:
-        st.markdown("#### 4️⃣ Side-by-Side Category Distribution Comparison")
-        fig4 = px.bar(df_combined, x="Category", y="Confidence", color="Model", barmode="group", text_auto=".1%", color_discrete_map={"BERT": "#5dfdcb", "Logistic Regression": "#fe5f55", "Linear SVM": "#3a86ff"})
+        st.markdown("#### 4️⃣ BoW vs. Pipeline LogReg Distribution Comparison")
+        # Direct structural comparison between the two scikit configurations
+        fig4 = px.bar(df_scikit_compare, x="Category", y="Confidence", color="Model", barmode="group", text_auto=".1%", color_discrete_map={"BoW Logistic Regression": "#fe5f55", "Pipeline Logistic Regression": "#3a86ff"})
         fig4.update_layout(yaxis=dict(range=[0, 1], tickformat="%"), height=350, paper_bgcolor="#0E1117", plot_bgcolor="#0E1117", font_color="white")
         st.plotly_chart(fig4, use_container_width=True)
 
     with colB:
-        st.markdown("#### 5️⃣ Winning Confidence Gauge Metrics")
+        st.markdown("#### 5️⃣ Final Winning Confidence Gauge Metrics")
         
         bert_top_conf = bert_probabilities.get(bert_pred, 0.0) if bert_pred != "N/A" else 0.0
-        lr_top_conf = lr_probabilities.get(lr_pred, 0.0) if lr_pred != "N/A" else 0.0
-        svm_top_conf = svm_probabilities.get(svm_pred, 0.0) if svm_pred != "N/A" else 0.0
+        bow_top_conf = bow_probabilities.get(bow_pred, 0.0) if bow_pred != "N/A" else 0.0
+        pipe_top_conf = pipe_probabilities.get(pipe_pred, 0.0) if pipe_pred != "N/A" else 0.0
         
         fig5 = go.Figure()
         
@@ -94,16 +96,16 @@ def draw_comparison_dashboard(bert_probabilities, lr_probabilities, svm_probabil
         ))
         
         fig5.add_trace(go.Indicator(
-            mode = "gauge+number", value = lr_top_conf * 100,
+            mode = "gauge+number", value = bow_top_conf * 100,
             domain = {'x': [0.35, 0.65], 'y': [0, 1]},
-            title = {'text': f"LR:<br>{lr_pred}", 'font': {'size': 11}},
+            title = {'text': f"BoW LR:<br>{bow_pred}", 'font': {'size': 11}},
             gauge = {'bar': {'color': "#fe5f55"}, 'axis': {'range': [0, 100]}}
         ))
 
         fig5.add_trace(go.Indicator(
-            mode = "gauge+number", value = svm_top_conf * 100,
+            mode = "gauge+number", value = pipe_top_conf * 100,
             domain = {'x': [0.7, 1], 'y': [0, 1]},
-            title = {'text': f"SVM:<br>{svm_pred}", 'font': {'size': 11}},
+            title = {'text': f"Pipe LR:<br>{pipe_pred}", 'font': {'size': 11}},
             gauge = {'bar': {'color': "#3a86ff"}, 'axis': {'range': [0, 100]}}
         ))
         
