@@ -167,5 +167,5 @@ with tab1:
             st.warning("Please enter text first.")
 
 with tab2:
-    st.subheader("Training Analytics & Insights")
+    st.subheader("Dataset Visualizations & Analytics")
     ui.show_image_dashboard(IMG_DIR)
