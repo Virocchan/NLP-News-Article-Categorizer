@@ -129,6 +129,6 @@ def show_image_dashboard(image_dir):
         load_img(col1, "wordcloud.png", "3. Global Word Cloud")
 
     with col2:
-        load_img(col2, "loss_curve.png", "2. Training Loss Curve")
+        load_img(col2, "article_length_distribution.png", "2. Article Length Distribution")
         st.write("")
-        load_img(col2, "confusion_matrix.png", "4. Confusion Matrix - BERT")
+        load_img(col2, "Top_Words_Frequency.png", "4. Top Words Frequency")
